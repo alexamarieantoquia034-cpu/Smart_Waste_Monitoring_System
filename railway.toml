@@ -1,18 +1,17 @@
 # ============================================================================
 # Railway deployment configuration - Smart Waste Monitoring System
-# ============================================================================
 # Docs: https://docs.railway.com/reference/config-as-code
 #
-# Steps:
-#   1. Create a new Railway project and add a PostgreSQL plugin.
-#   2. Generate an app key locally:
-#        php artisan key:generate --show
-#   3. Set these variables in the Variables tab:
-#        APP_KEY        = <the key generated in step 2>
-#        DB_CONNECTION  = pgsql
-#        DB_URL         = ${DATABASE_URL}
-#   4. Deploy this repository. The startCommand below automatically runs
-#      the migrations (creating all tables) before starting the web server.
+# Steps (already completed):
+#   1. Railway project created: smart-waste-monitoring
+#   2. PostgreSQL plugin added  -> provides DATABASE_URL
+#   3. Variables set: APP_KEY, DB_CONNECTION=pgsql, DB_URL=${DATABASE_URL}
+#   4. Service source = GitHub repo (alexamarieantoquia034-cpu/
+#      Smart_Waste_Monitoring_System), branch main -> GitHub autodeploys
+#
+# NOTE: Config as Code (railway.toml) is deprecated in favour of
+#       Infrastructure as Code (.railway/railway.ts), but remains supported
+#       until 2026-12-01.
 # ============================================================================
 
 [build]
