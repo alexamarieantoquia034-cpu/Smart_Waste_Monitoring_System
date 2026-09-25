@@ -1,19 +1,35 @@
 <?php
 
-use App\Http\Controllers\BinController;
+use App\Http\Controllers\ClassificationController;
+use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\AlertController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
-});
+})->name('home');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
-   
-Route::get('/bins', [BinController::class, 'index']) ->name('bins');
+
+Route::get('/alerts', [AlertController::class, 'index'])
+    ->middleware(['auth'])
+    ->name('alerts');
+
+Route::get('/analytics', [AnalyticsController::class, 'index'])
+    ->middleware(['auth'])
+    ->name('analytics');
+
+Route::get('/classifications', [ClassificationController::class, 'index'])
+    ->middleware(['auth'])
+    ->name('classifications.index');
+
+Route::get('/classifications/{classification}', [ClassificationController::class, 'show'])
+    ->middleware(['auth'])
+    ->name('classifications.show');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -21,9 +37,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::view('/alerts', 'alerts.index')->name('alerts');
-
-Route::view('/analytics', 'analytics.index')->name('analytics');
+Route::get('/notifications/unread-count', [AlertController::class, 'unreadCount'])
+    ->middleware(['auth'])
+    ->name('notifications.unread-count');
 
 Route::view('/reports', 'reports.index')->name('reports');
 
