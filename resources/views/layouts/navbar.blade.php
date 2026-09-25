@@ -9,6 +9,7 @@
         'users' => 'Users',
         'dss' => 'Decision Support',
         'settings' => 'Settings',
+        'profile.edit' => 'Profile Settings',
         'classifications.index' => 'Classification Logs',
         'classifications.show' => 'Classification Detail',
     ];
