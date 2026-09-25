@@ -95,6 +95,93 @@ a { text-decoration: none; }
 
 .sw-card__body { padding: 1.4rem; }
 
+.sw-card--danger { border-color: #fecdd3; }
+.sw-card--danger h2 { color: var(--sw-reject); }
+
+/* ---------- Page headers ---------- */
+.sw-page-head { margin-bottom: 1.5rem; }
+
+.sw-page-head__eyebrow {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--sw-teal-600);
+    margin: 0 0 0.35rem;
+}
+
+.sw-page-head__title { font-size: 1.5rem; margin: 0; letter-spacing: -0.03em; }
+.sw-page-head__lead { color: var(--sw-slate-500); font-size: 0.88rem; margin: 0.3rem 0 0; }
+
+/* ---------- Profile ---------- */
+.sw-profile { display: flex; flex-direction: column; gap: 1.25rem; max-width: 720px; }
+
+.sw-profile section > header { margin-bottom: 1.1rem; }
+.sw-profile section > header h2 { font-size: 1rem; margin: 0; }
+.sw-profile section > header p { color: var(--sw-slate-500); font-size: 0.82rem; margin: 0.25rem 0 0; }
+
+.sw-profile form > div { margin-bottom: 1rem; }
+
+.sw-profile label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--sw-slate-700);
+    margin-bottom: 0.4rem;
+}
+
+.sw-profile input[type='text'],
+.sw-profile input[type='email'],
+.sw-profile input[type='password'] {
+    display: block;
+    width: 100%;
+    border: 1px solid var(--sw-slate-200);
+    border-radius: var(--sw-radius-sm);
+    padding: 0.65rem 0.85rem;
+    font-size: 0.9rem;
+    color: var(--sw-slate-900);
+    background: var(--sw-surface);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sw-profile input:focus {
+    outline: none;
+    border-color: var(--sw-teal-500);
+    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.18);
+}
+
+.sw-profile .flex.items-center { margin-bottom: 0; }
+
+.sw-profile button[type='submit']:not(.bg-red-600) {
+    background: linear-gradient(135deg, var(--sw-teal-600), var(--sw-teal-700));
+    color: #fff;
+    border: 0;
+    border-radius: var(--sw-radius-sm);
+    padding: 0.6rem 1.3rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: normal;
+    cursor: pointer;
+    box-shadow: 0 6px 16px -6px rgba(13, 148, 136, 0.7);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sw-profile button[type='submit']:not(.bg-red-600):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px -8px rgba(13, 148, 136, 0.8);
+}
+
+/* Danger (delete account) buttons keep their red treatment. */
+.sw-profile button.bg-red-600 {
+    background: var(--sw-reject);
+    border-radius: var(--sw-radius-sm);
+    padding: 0.6rem 1.2rem;
+    font-size: 0.82rem;
+}
+
+.sw-profile button.bg-red-600:hover { background: #be123c; }
+
 .sw-empty {
     text-align: center;
     padding: 2.5rem 1rem;

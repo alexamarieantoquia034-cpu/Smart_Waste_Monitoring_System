@@ -21,7 +21,14 @@
         @endauth
 
         <main class="{{ auth()->check() ? 'sw-content' : 'flex-grow-1' }}">
-            @yield('content')
+            {{-- Pages extending this layout use @section/@yield, while the
+                 Breeze <x-app-layout> class component passes its content
+                 through $slot. Support both so no page renders empty. --}}
+            @hasSection('content')
+                @yield('content')
+            @else
+                {{ $slot ?? '' }}
+            @endif
         </main>
 
     </div>
