@@ -18,11 +18,17 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::create([
-            'name' => 'Administrator',
-            'email' => 'admin@gmail.com',
-            'password' => Hash::make('admin123'),
-            'role' => 'admin',
-        ]);
+        // Idempotent: safe to run on every deployment. The existing admin
+        // account is left untouched once it has been created.
+        User::firstOrCreate(
+            [
+                'email' => 'admin@gmail.com',
+            ],
+            [
+                'name' => 'Administrator',
+                'password' => Hash::make('admin123'),
+                'role' => 'admin',
+            ]
+        );
     }
 }
