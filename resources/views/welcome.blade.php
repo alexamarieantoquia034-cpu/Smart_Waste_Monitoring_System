@@ -12,7 +12,9 @@
         <div class="sw-nav__inner">
 
             <a href="{{ route('home') }}" class="sw-brand">
-                <span class="sw-brand__mark"><i class="bi bi-recycle"></i></span>
+                <span class="sw-brand__mark">
+                    <img src="{{ asset('images/barbie-hero.jpg') }}" alt="Smart Waste">
+                </span>
                 Smart Waste
             </a>
 

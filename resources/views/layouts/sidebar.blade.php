@@ -6,7 +6,7 @@
 
     <div class="sw-sidebar__brand">
         <div class="sw-sidebar__mark">
-            <i class="bi bi-recycle"></i>
+            <img src="{{ asset('images/barbie-hero.jpg') }}" alt="Smart Waste">
         </div>
         <div>
             <div class="sw-sidebar__name">Smart Waste</div>

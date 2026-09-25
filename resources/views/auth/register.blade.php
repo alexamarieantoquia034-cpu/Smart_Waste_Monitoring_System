@@ -12,7 +12,9 @@
 
     <aside class="sw-auth__aside">
         <a href="{{ route('home') }}" class="sw-brand" style="color:#fff">
-            <span class="sw-brand__mark"><i class="bi bi-recycle"></i></span>
+            <span class="sw-brand__mark">
+                <img src="{{ asset('images/barbie-hero.jpg') }}" alt="Smart Waste">
+            </span>
             Smart Waste
         </a>
 
