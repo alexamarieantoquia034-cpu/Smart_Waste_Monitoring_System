@@ -129,4 +129,3 @@
 
     setInterval(updateNotificationCount, 30000);
 </script>
-
