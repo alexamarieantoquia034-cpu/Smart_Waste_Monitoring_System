@@ -1,56 +1,60 @@
-<div class="card shadow h-100">
+﻿<div class="sw-card h-100">
 
-    <div class="card-header fw-bold">
-        Latest Waste Classification
+    <div class="sw-card__head">
+        <div>
+            <h3 class="sw-card__title">
+                <i class="bi bi-cpu"></i> Latest classification
+            </h3>
+            <p class="sw-card__sub">Most recent detected item</p>
+        </div>
     </div>
 
-    <div class="card-body">
+    <div class="sw-card__body">
 
         @if($classification)
 
             @if($classification->image_path)
-
-                <img
-                    src="{{ asset($classification->image_path) }}"
-                    class="img-fluid rounded mb-3">
-
+                <div class="rounded-3 overflow-hidden mb-3" style="background:var(--sw-slate-100)">
+                    <img src="{{ asset($classification->image_path) }}"
+                         class="img-fluid w-100" alt="Classified waste">
+                </div>
             @endif
 
-            <table class="table table-sm">
-
-                <tr>
-                    <th>Waste Type</th>
-                    <td>{{ $classification->waste_type }}</td>
-                </tr>
-
-                <tr>
-                    <th>Confidence</th>
-                    <td>{{ $classification->confidence }}%</td>
-                </tr>
-
-                <tr>
-                    <th>Date</th>
-                    <td>{{ $classification->created_at->format('F d, Y') }}</td>
-                </tr>
-
-                <tr>
-                    <th>Time</th>
-                    <td>{{ $classification->created_at->format('h:i A') }}</td>
-                </tr>
-
-            </table>
-
-            <div class="text-end mt-3">
-                <a href="{{ route('classifications.show', $classification) }}"
-                    class="btn btn-sm btn-primary">
-                    View Details
-                </a>
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <span class="sw-kpi__icon" style="--kpi:var(--sw-teal-600);width:40px;height:40px;font-size:1.1rem">
+                    <i class="bi bi-tag"></i>
+                </span>
+                <div>
+                    <div style="font-weight:700;text-transform:capitalize">{{ $classification->waste_type }}</div>
+                    <div class="text-muted" style="font-size:.75rem">
+                        {{ ucfirst($classification->compartment) }} bin
+                    </div>
+                </div>
             </div>
-            
+
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="text-muted" style="font-size:.75rem">Confidence</span>
+                <div class="sw-meter flex-grow-1" style="margin-top:0">
+                    <div class="sw-meter__fill" style="width: {{ min(100, (float) $classification->confidence) }}%"></div>
+                </div>
+                <span style="font-size:.78rem;font-weight:700">{{ number_format($classification->confidence, 1) }}%</span>
+            </div>
+
+            <p class="text-muted mb-3" style="font-size:.75rem">
+                <i class="bi bi-clock me-1"></i>
+                {{ $classification->created_at->format('M d, Y h:i A') }}
+            </p>
+
+            <a href="{{ route('classifications.show', $classification) }}"
+               class="btn btn-primary btn-sm w-100">
+                View full details
+            </a>
+
         @else
 
-            <div class="text-center py-5 text-muted">
-                No classification available.
+            <div class="sw-empty">
+                <i class="bi bi-camera"></i>
+                No classification recorded yet.
             </div>
 
         @endif

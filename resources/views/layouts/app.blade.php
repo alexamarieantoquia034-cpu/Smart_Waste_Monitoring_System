@@ -6,19 +6,27 @@
     <title>Smart Waste Monitoring System</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-light">
+<body>
 
-    @include('layouts.navbar')
+<div class="sw-shell">
 
-    <div class="container-fluid mt-5">
-        <div class="row">
-            @include('layouts.sidebar')
+    @auth
+        @include('layouts.sidebar')
+    @endauth
 
-            <main class="col-md-10 p-4">
-                @yield('content')
-            </main>
-        </div>
+    <div class="sw-main">
+
+        @auth
+            @include('layouts.navbar')
+        @endauth
+
+        <main class="{{ auth()->check() ? 'sw-content' : 'flex-grow-1' }}">
+            @yield('content')
+        </main>
+
     </div>
+
+</div>
 
     @yield('scripts')
 

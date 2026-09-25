@@ -1,5 +1,8 @@
-<footer class="col-12 bg-dark text-white text-center p-3">
-
-    &copy; 2026 Smart Waste Monitoring System
-
+<footer class="sw-foot">
+    <div class="container">
+        <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-2">
+            <span>&copy; {{ date('Y') }} Smart Waste Monitoring System</span>
+            <span>Built with Laravel &amp; PostgreSQL</span>
+        </div>
+    </div>
 </footer>

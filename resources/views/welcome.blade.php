@@ -6,116 +6,184 @@
     <title>Smart Waste Monitoring System</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-success">
-        <div class="container">
-            <a class="navbar-brand" href="{{ route('home') }}">
-                <i class="bi bi-recycle"></i> Smart Waste Monitoring
+<body class="sw-landing">
+
+    <nav class="sw-nav">
+        <div class="sw-nav__inner">
+
+            <a href="{{ route('home') }}" class="sw-brand">
+                <span class="sw-brand__mark"><i class="bi bi-recycle"></i></span>
+                Smart Waste
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="{{ route('home') }}">Home</a>
-                    </li>
-                    @if (Route::has('login'))
-                        @auth
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="bi bi-person-fill"></i> Account
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" href="{{ route('dashboard') }}">
-                                        <i class="bi bi-speedometer2"></i> Dashboard
-                                    </a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <a class="dropdown-item text-danger" href="{{ route('logout') }}" 
-                                           onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                            <i class="bi bi-box-arrow-right"></i> Logout
-                                        </a>
-                                    </li>
-                                </ul>
-                                <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                                    @csrf
-                                </form>
-                            </li>
-                        @else
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('login') }}">Login</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('register') }}">Register</a>
-                            </li>
-                        @endif
-                    @endif
-                </ul>
+
+            <div class="sw-nav__links">
+                @auth
+                    <a href="{{ route('dashboard') }}" class="sw-btn sw-btn--dark">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                @else
+                    <a href="#features" class="sw-nav__link d-none d-sm-block">Features</a>
+                    <a href="{{ route('login') }}" class="sw-nav__link">Login</a>
+                    <a href="{{ route('register') }}" class="sw-btn sw-btn--dark">Get started</a>
+                @endauth
             </div>
+
         </div>
     </nav>
 
-    <!-- Hero Section -->
-    <section class="hero-section">
+    <header class="sw-hero">
+        <div class="sw-hero__inner">
+
+            <div>
+                <span class="sw-eyebrow">
+                    <b>IoT</b> Real-time bin telemetry
+                </span>
+
+                <h1 class="sw-hero__title">
+                    Know what's filling up <em>before</em> it overflows.
+                </h1>
+
+                <p class="sw-hero__lead">
+                    Smart sensors read every compartment around the clock. The system turns
+                    those readings into clear alerts, waste classification, and collection
+                    recommendations — so crews dispatch the right truck, at the right time.
+                </p>
+
+                <div class="sw-hero__actions">
+                    @auth
+                        <a href="{{ route('dashboard') }}" class="sw-btn sw-btn--lime">
+                            <i class="bi bi-speedometer2"></i> Open dashboard
+                        </a>
+                    @else
+                        <a href="{{ route('login') }}" class="sw-btn sw-btn--lime">
+                            <i class="bi bi-box-arrow-in-right"></i> Sign in
+                        </a>
+                        <a href="{{ route('register') }}" class="sw-btn sw-btn--ghost">
+                            <i class="bi bi-person-plus"></i> Create account
+                        </a>
+                    @endauth
+                </div>
+            </div>
+
+            <div class="sw-device" aria-hidden="true">
+                <div class="sw-device__head">
+                    <span class="sw-device__title">Compartment fill levels</span>
+                    <span class="sw-device__live">Live</span>
+                </div>
+
+                @php
+                    $demo = [
+                        ['Plastic', 82, '#60a5fa'],
+                        ['Paper', 63, '#fbbf24'],
+                        ['Biodegradable', 91, '#4ade80'],
+                        ['Reject', 47, '#fb7185'],
+                    ];
+                @endphp
+
+                @foreach($demo as [$label, $value, $color])
+                    <div class="sw-device__row">
+                        <div class="sw-device__meta">
+                            <span>{{ $label }}</span>
+                            <b>{{ $value }}%</b>
+                        </div>
+                        <div class="sw-device__bar">
+                            <div class="sw-device__fill"
+                                 style="width: {{ $value }}%; background: {{ $color }};"></div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+        </div>
+    </header>
+
+    <section class="sw-section" id="features">
         <div class="container">
-            <div class="row align-items-center">
-                <div class="col-lg-7">
-                    <h1 class="display-4 fw-bold mb-4">
-                        Smart Waste <span class="text-white">Monitoring</span> System
-                    </h1>
-                    <p class="lead mb-4">
-                        Monitor and manage waste collection efficiently with our smart monitoring solution. 
-                        Track waste levels, receive alerts, and optimize collection routes.
-                    </p>
-                    <div class="d-flex gap-3 flex-wrap">
-                        @if (Route::has('login'))
-                            @auth
-                                <a href="{{ route('dashboard') }}" class="btn btn-light btn-lg">
-                                    <i class="bi bi-speedometer2"></i> Dashboard
-                                </a>
-                                <a href="{{ route('logout') }}" class="btn btn-outline-light btn-lg" 
-                                   onclick="event.preventDefault(); document.getElementById('logout-form-homepage').submit();">
-                                    <i class="bi bi-box-arrow-right"></i> Logout
-                                </a>
-                                <form id="logout-form-homepage" action="{{ route('logout') }}" method="POST" class="d-none">
-                                    @csrf
-                                </form>
-                            @else
-                                <a href="{{ route('login') }}" class="btn btn-light btn-lg">
-                                    <i class="bi bi-box-arrow-in-right"></i> Login
-                                </a>
-                                <a href="{{ route('register') }}" class="btn btn-outline-light btn-lg">
-                                    <i class="bi bi-person-plus"></i> Register
-                                </a>
-                            @endif
-                        @endif
+
+            <div class="sw-section__head">
+                <h2 class="sw-section__title">Everything the crew needs, on one screen</h2>
+                <p class="sw-section__lead">
+                    From ultrasonic readings to machine-learning classification, the system
+                    turns raw sensor data into decisions your team can act on.
+                </p>
+            </div>
+
+            <div class="row g-4">
+
+                <div class="col-md-6 col-lg-3">
+                    <div class="sw-feature">
+                        <div class="sw-feature__icon"><i class="bi bi-speedometer2"></i></div>
+                        <h3 class="sw-feature__title">Live fill levels</h3>
+                        <p class="sw-feature__text">
+                            Percentage fill and raw distance for plastic, paper, biodegradable
+                            and reject bins, updated continuously.
+                        </p>
                     </div>
                 </div>
-                <div class="col-lg-5 text-center">
-                    <div class="hero-icon">
-                        <i class="bi bi-graph-up-arrow"></i>
+
+                <div class="col-md-6 col-lg-3">
+                    <div class="sw-feature">
+                        <div class="sw-feature__icon"><i class="bi bi-bell"></i></div>
+                        <h3 class="sw-feature__title">Threshold alerts</h3>
+                        <p class="sw-feature__text">
+                            Automatic warnings when a bin nears capacity, with a live
+                            notification badge in the top bar.
+                        </p>
                     </div>
                 </div>
+
+                <div class="col-md-6 col-lg-3">
+                    <div class="sw-feature">
+                        <div class="sw-feature__icon"><i class="bi bi-cpu"></i></div>
+                        <h3 class="sw-feature__title">Waste classification</h3>
+                        <p class="sw-feature__text">
+                            Image-based classification with a confidence score and a
+                            full history of every detected item.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-3">
+                    <div class="sw-feature">
+                        <div class="sw-feature__icon"><i class="bi bi-signpost-split"></i></div>
+                        <h3 class="sw-feature__title">Decision support</h3>
+                        <p class="sw-feature__text">
+                            The system ranks compartments by urgency and recommends when to
+                            dispatch collection.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+    <section class="sw-section sw-section--tint">
+        <div class="container">
+            <div class="sw-cta">
+                <h2 class="sw-cta__title">Ready to run smarter collection routes?</h2>
+                <p class="sw-cta__text">
+                    Sign in to the operations console and see your bins, alerts and
+                    recommendations in one place.
+                </p>
+
+                @auth
+                    <a href="{{ route('dashboard') }}" class="sw-btn sw-btn--lime">
+                        <i class="bi bi-speedometer2"></i> Go to dashboard
+                    </a>
+                @else
+                    <a href="{{ route('login') }}" class="sw-btn sw-btn--lime">
+                        <i class="bi bi-box-arrow-in-right"></i> Login
+                    </a>
+                @endauth
             </div>
         </div>
     </section>
 
-    <style>
-        .hero-section {
-            background: linear-gradient(135deg, #0d6efd 0%, #198754 100%);
-            color: white;
-            padding: 80px 0;
-            margin-bottom: 60px;
-        }
-        .hero-section .display-4 {
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-        .hero-icon {
-            font-size: 150px;
-            color: rgba(255,255,255,0.8);
-        }
-    </style>
+    <footer class="sw-foot">
+        &copy; {{ date('Y') }} Smart Waste Monitoring System
+    </footer>
+
 </body>
 </html>

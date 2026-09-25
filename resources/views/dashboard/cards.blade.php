@@ -1,67 +1,78 @@
 @php
-    $cards = [
+    $compartments = [
         [
-            'title' => 'Plastic',
-            'value' => $sensorData->plastic_level ?? 0,
-            'color' => 'success',
+            'key' => 'plastic',
+            'label' => 'Plastic',
+            'icon' => 'bi-cup-straw',
+            'level' => $sensorData->plastic_level ?? 0,
+            'distance' => $sensorData->plastic_distance ?? null,
         ],
         [
-            'title' => 'Paper',
-            'value' => $sensorData->paper_level ?? 0,
-            'color' => 'warning',
+            'key' => 'paper',
+            'label' => 'Paper',
+            'icon' => 'bi-file-earmark-text',
+            'level' => $sensorData->paper_level ?? 0,
+            'distance' => $sensorData->paper_distance ?? null,
         ],
         [
-            'title' => 'Biodegradable',
-            'value' => $sensorData->biodegradable_level ?? 0,
-            'color' => 'danger',
+            'key' => 'bio',
+            'label' => 'Biodegradable',
+            'icon' => 'bi-leaf',
+            'level' => $sensorData->biodegradable_level ?? 0,
+            'distance' => $sensorData->biodegradable_distance ?? null,
         ],
         [
-            'title' => 'Reject',
-            'value' => $sensorData->reject_level ?? 0,
-            'color' => 'dark',
+            'key' => 'reject',
+            'label' => 'Reject',
+            'icon' => 'bi-x-octagon',
+            'level' => $sensorData->reject_level ?? 0,
+            'distance' => $sensorData->reject_distance ?? null,
         ],
     ];
 @endphp
 
-<div class="row mb-4">
+<div class="row g-3 mb-4">
 
-    @foreach ($cards as $card)
+    @foreach($compartments as $bin)
+        @php
+            $value = round((float) $bin['level'], 1);
+            $width = max(0, min(100, $value));
+        @endphp
 
-        <div class="col-md-3 mb-4">
+        <div class="col-6 col-xl-3">
+            <div class="sw-kpi sw-kpi--{{ $bin['key'] }}">
 
-            <div class="card shadow border-0 h-100">
+                <div class="sw-kpi__top">
+                    <span class="sw-kpi__label">{{ $bin['label'] }}</span>
+                    <span class="sw-kpi__icon"><i class="bi {{ $bin['icon'] }}"></i></span>
+                </div>
 
-                <div class="card-body">
+                <div class="sw-kpi__value">
+                    {{ $value }}<span>%</span>
+                </div>
 
-                    <h5 class="fw-bold text-{{ $card['color'] }}">
-                        {{ $card['title'] }}
-                    </h5>
+                <div class="sw-kpi__meta">
+                    @if($value >= 90)
+                        <i class="bi bi-exclamation-triangle-fill" style="color:var(--sw-reject)"></i>
+                        <span>Nearly full</span>
+                    @elseif($value >= 75)
+                        <i class="bi bi-clock-fill" style="color:var(--sw-paper)"></i>
+                        <span>Schedule pickup</span>
+                    @else
+                        <i class="bi bi-check-circle-fill" style="color:var(--sw-bio)"></i>
+                        <span>Within capacity</span>
+                    @endif
 
-                    <h2 class="mb-3">
-                        {{ $card['value'] }}%
-                    </h2>
+                    @if($bin['distance'] !== null)
+                        <span class="ms-auto">{{ round((float) $bin['distance'], 0) }} cm</span>
+                    @endif
+                </div>
 
-                    <div class="progress mb-2">
-
-                        <div
-                            class="progress-bar bg-{{ $card['color'] }}"
-                            role="progressbar"
-                            style="width: {{ $card['value'] }}%;"
-                            aria-valuenow="{{ $card['value'] }}"
-                            aria-valuemin="0"
-                            aria-valuemax="100">
-                        </div>
-
-                    </div>
-
-                    <small class="text-muted">
-                        Current Fill Level
-                    </small>
-
+                <div class="sw-meter">
+                    <div class="sw-meter__fill" style="width: {{ $width }}%"></div>
                 </div>
 
             </div>
-
         </div>
 
     @endforeach

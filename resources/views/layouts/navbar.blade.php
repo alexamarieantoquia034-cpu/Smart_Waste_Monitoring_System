@@ -1,143 +1,132 @@
 @php
     $unreadAlerts = \App\Models\Alert::where('is_resolved', false)->count();
+
+    $pageTitles = [
+        'dashboard' => 'Dashboard',
+        'analytics' => 'Analytics',
+        'alerts' => 'Alerts',
+        'reports' => 'Reports',
+        'users' => 'Users',
+        'dss' => 'Decision Support',
+        'settings' => 'Settings',
+        'classifications.index' => 'Classification Logs',
+        'classifications.show' => 'Classification Detail',
+    ];
+
+    $currentTitle = 'Overview';
+    foreach ($pageTitles as $routeName => $label) {
+        if (request()->routeIs($routeName)) {
+            $currentTitle = $label;
+            break;
+        }
+    }
 @endphp
 
-<nav class="navbar navbar-dark bg-success fixed-top">
+<header class="sw-topbar">
 
-    <div class="container-fluid">
+    <div class="d-flex align-items-center gap-3">
 
-        <!-- Logo/Brand -->
-        <a class="navbar-brand" href="{{ route('home') }}">
-            <i class="bi bi-recycle me-2"></i> Smart Waste Monitoring
-        </a>
+        <button class="sw-burger" id="sidebarToggle" type="button" aria-label="Toggle navigation">
+            <i class="bi bi-list"></i>
+        </button>
 
-        <!-- Right Side: Notifications & User Account -->
-        <ul class="navbar-nav flex-row align-items-center">
-
-            <!-- Notification Icon with Badge (real-time) -->
-            @auth
-                <li class="nav-item me-3">
-                    <a class="nav-link position-relative" href="{{ route('alerts') }}">
-                        <i class="bi bi-bell-fill fs-5"></i>
-                        <span id="notification-badge"
-                              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger text-white pulse-badge {{ $unreadAlerts > 0 ? '' : 'd-none' }}">
-                            {{ $unreadAlerts }}
-                            <span class="visually-hidden">New alerts</span>
-                        </span>
-                    </a>
-                </li>
-            @endauth
-
-            <!-- User Account Dropdown -->
-            @auth
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-person-fill fs-5"></i>
-                        <span class="ms-2 d-none d-md-inline">{{ auth()->user()->name }}</span>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li>
-                            <div class="dropdown-header text-center py-2">
-                                <i class="bi bi-person-circle fs-4 d-block mb-2"></i>
-                                <strong class="d-block">{{ auth()->user()->name }}</strong>
-                                <small class="text-muted">{{ auth()->user()->email }}</small>
-                                <small class="text-muted">
-                                    <span class="badge bg-primary">{{ auth()->user()->role ?? 'user' }}</span>
-                                </small>
-                            </div>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <a class="dropdown-item" href="{{ route('profile.edit') }}">
-                                <i class="bi bi-person-gear"></i> Profile Settings
-                            </a>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <a class="dropdown-item text-danger" href="{{ route('logout') }}"
-                               onclick="event.preventDefault(); document.getElementById('navbar-logout-form').submit();">
-                                <i class="bi bi-box-arrow-right"></i> Logout
-                            </a>
-                        </li>
-                    </ul>
-                    <form id="navbar-logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                        @csrf
-                    </form>
-                </li>
-            @else
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('login') }}">
-                        <i class="bi bi-box-arrow-in-right"></i> Login
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('register') }}">
-                        <i class="bi bi-person-plus"></i> Register
-                    </a>
-                </li>
-            @endauth
-
-        </ul>
+        <div>
+            <p class="sw-topbar__title">{{ $currentTitle }}</p>
+            <p class="sw-topbar__crumb">Smart Waste Monitoring &amp; Decision Support</p>
+        </div>
 
     </div>
 
-</nav>
+    <div class="d-flex align-items-center gap-2 gap-md-3">
 
-<!-- Notification Pulse Animation -->
-<style>
-    .pulse-badge {
-        animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
-        70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
-        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
-    }
+        @auth
+            <a href="{{ route('alerts') }}" class="sw-bell" aria-label="Notifications">
+                <i class="bi bi-bell"></i>
+                <span id="notification-badge"
+                      class="sw-bell__dot {{ $unreadAlerts > 0 ? '' : 'is-hidden' }}">{{ $unreadAlerts }}</span>
+            </a>
+        @endauth
 
-    .navbar {
-        padding-top: 0.3rem;
-        padding-bottom: 0.3rem;
-    }
-    .navbar-brand {
-        padding-top: 0;
-        padding-bottom: 0;
-    }
-    .navbar .nav-link {
-        padding-top: 0.35rem;
-        padding-bottom: 0.35rem;
-        padding-right: 0.5rem;
-        padding-left: 0.5rem;
-    }
-    .navbar .nav-item.dropdown .nav-link {
-        padding-top: 0.2rem;
-        padding-bottom: 0.2rem;
-    }
-    .dropdown-menu {
-        padding: 0.3rem 0;
-    }
-    .dropdown-menu .dropdown-item,
-    .dropdown-menu .dropdown-header {
-        padding: 0.35rem 1rem;
-    }
-</style>
+        @auth
+            <div class="dropdown">
+                <button class="sw-user" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="sw-avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
+                    <span class="d-none d-sm-block text-start">
+                        <span class="sw-user__name d-block">{{ auth()->user()->name }}</span>
+                        <span class="sw-user__role d-block">{{ auth()->user()->role ?? 'user' }}</span>
+                    </span>
+                    <i class="bi bi-chevron-down d-none d-sm-block" style="font-size:.7rem;color:var(--sw-slate-500)"></i>
+                </button>
 
-<!-- Real-time Notification Polling -->
-@auth
+                <ul class="dropdown-menu dropdown-menu-end" style="min-width:230px">
+                    <li class="px-3 py-2">
+                        <div class="fw-semibold">{{ auth()->user()->name }}</div>
+                        <div class="text-muted" style="font-size:.78rem">{{ auth()->user()->email }}</div>
+                        <span class="sw-pill sw-pill--info mt-2">{{ auth()->user()->role ?? 'user' }}</span>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="{{ route('profile.edit') }}">
+                            <i class="bi bi-person-gear me-2"></i>Profile Settings
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item text-danger" href="{{ route('logout') }}"
+                           onclick="event.preventDefault(); document.getElementById('topbar-logout-form').submit();">
+                            <i class="bi bi-box-arrow-right me-2"></i>Logout
+                        </a>
+                    </li>
+                </ul>
+
+                <form id="topbar-logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                    @csrf
+                </form>
+            </div>
+        @else
+            <a href="{{ route('login') }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Login
+            </a>
+        @endauth
+
+    </div>
+
+</header>
+
 <script>
+    // Mobile sidebar
+    (function () {
+        var sidebar = document.getElementById('appSidebar');
+        var backdrop = document.getElementById('sidebarBackdrop');
+        var toggle = document.getElementById('sidebarToggle');
+        if (!sidebar || !toggle) return;
+
+        function setOpen(open) {
+            sidebar.classList.toggle('is-open', open);
+            if (backdrop) backdrop.style.display = open ? 'block' : 'none';
+        }
+
+        toggle.addEventListener('click', function () {
+            setOpen(!sidebar.classList.contains('is-open'));
+        });
+
+        if (backdrop) {
+            backdrop.addEventListener('click', function () { setOpen(false); });
+        }
+    })();
+
+    // Live notification count
     function updateNotificationCount() {
         fetch('{{ route('notifications.unread-count') }}')
-            .then(response => response.json())
-            .then(data => {
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
                 var badge = document.getElementById('notification-badge');
-                if (badge) {
-                    var count = data.count;
-                    badge.textContent = count;
-                    badge.style.display = count > 0 ? 'inline-block' : 'none';
-                }
+                if (!badge) return;
+                badge.textContent = data.count;
+                badge.classList.toggle('is-hidden', data.count === 0);
             })
-            .catch(function() {});
+            .catch(function () {});
     }
 
     setInterval(updateNotificationCount, 30000);
 </script>
-@endauth
+
