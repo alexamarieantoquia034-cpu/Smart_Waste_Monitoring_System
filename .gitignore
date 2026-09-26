@@ -16,6 +16,13 @@
 /public/build
 /public/hot
 /public/storage
+# Captured classification snapshots are runtime data, not source.
+/public/images/classifications
+# Wi-Fi password and device API key compiled into the ESP32-CAM firmware.
+/esp32cam/include/secrets.h
+# PlatformIO build output.
+/esp32cam/.pio
+/platformio.ini.bak
 /storage/*.key
 /storage/pail
 /vendor

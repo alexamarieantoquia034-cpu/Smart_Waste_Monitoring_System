@@ -12,6 +12,7 @@
         'profile.edit' => 'Profile Settings',
         'classifications.index' => 'Classification Logs',
         'classifications.show' => 'Classification Detail',
+        'classifications.live' => 'Live Classification',
     ];
 
     $currentTitle = 'Overview';
@@ -128,5 +129,14 @@
             .catch(function () {});
     }
 
-    setInterval(updateNotificationCount, 30000);
+    // The ESP32-CAM can open or resolve an alert between two reads, so refresh
+    // the badge the moment the event stream says something changed rather than
+    // waiting for the next poll.
+    document.addEventListener('waste:alert', updateNotificationCount);
+    document.addEventListener('waste:reading', updateNotificationCount);
+
+    // Slow safety net for when the event stream is unavailable (a page served
+    // without a session, or a proxy that buffers it). This used to be the only
+    // mechanism at 30s; the stream now carries the live updates.
+    setInterval(updateNotificationCount, 300000);
 </script>

@@ -20,12 +20,20 @@ builder = "NIXPACKS"
 buildCommand = "composer install --no-dev --optimize-autoloader && php artisan package:discover --ansi && npm install && npm run build"
 
 [deploy]
-startCommand = "php artisan migrate --force --seed && php artisan serve --host=0.0.0.0 --port=$PORT"
+# --no-reload is required for PHP_CLI_SERVER_WORKERS below to take effect:
+# without it Laravel's serve command ignores the worker count and falls back
+# to a single thread. The MJPEG stream relay and the /api/live-stream SSE feed
+# are long-lived requests, and with one worker an open dashboard would block
+# every other request, including the ESP32-CAM's telemetry POSTs.
+startCommand = "php artisan migrate --force --seed && php artisan serve --no-reload --host=0.0.0.0 --port=$PORT"
 healthcheckPath = "/up"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
 # Pin the Node.js version used during the frontend build (Vite 7 needs >= 22.12)
+# and give the built-in server enough workers to hold concurrent long-lived
+# stream connections.
 [variables]
 NIXPACKS_NODE_VERSION = "22"
+PHP_CLI_SERVER_WORKERS = "8"

@@ -39,8 +39,13 @@
         </a>
 
         <a href="{{ route('classifications.index') }}"
-           class="sw-navlink {{ request()->routeIs('classifications.*') ? 'is-active' : '' }}">
+           class="sw-navlink {{ request()->routeIs('classifications.index', 'classifications.show') ? 'is-active' : '' }}">
             <i class="bi bi-cpu"></i> Classification
+        </a>
+
+        <a href="{{ route('classifications.live') }}"
+           class="sw-navlink {{ request()->routeIs('classifications.live') ? 'is-active' : '' }}">
+            <i class="bi bi-camera-video"></i> Live Classification
         </a>
 
         <a href="{{ route('reports') }}"

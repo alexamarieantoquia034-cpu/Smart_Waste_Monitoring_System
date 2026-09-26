@@ -12,61 +12,68 @@ Based on my investigation of the codebase, here's which components are **ACTUALL
 | **Build Tool** | Vite | ✅ **IMPLEMENTED** | `package.json` scripts include `"build": "vite build"`, `vite.config.js` configured, assets built in `public/build/` |
 | **JavaScript Framework** | Alpine.js | ✅ **IMPLEMENTED** | `package.json` has `"alpinejs": "^3.4.2"` in devDependencies |
 | **Authentication** | Laravel Breeze (Session-based) | ✅ **IMPLEMENTED** | Using Laravel Breeze for auth (not Sanctum). Session-based authentication with `SESSION_DRIVER=database`. Login/Register/Logout all working. |
-| **Real-Time Updates** | Laravel Reverb (WebSockets) | ❌ **NOT IMPLEMENTED** | No Reverb configuration found. No WebSocket setup in `.env` or config files. |
-| **Embedded Development** | Arduino IDE / ESP32 | ❌ **NOT IMPLEMENTED** | No Arduino/ESP32 code in the project. Database has sensor_data table, but no embedded device integration yet. |
-| **Machine Learning Framework** | TensorFlow/TensorFlow Lite | ❌ **NOT IMPLEMENTED** | No TensorFlow files, no .tflite models, no ML code in the project. |
-| **Image Classification Model** | MobileNetV2 | ❌ **NOT IMPLEMENTED** | No model files, no classification inference code. Classification logs table exists but no actual ML implementation. |
-| **Model Optimization** | TensorFlow Lite Converter | ❌ **NOT IMPLEMENTED** | No converter scripts or optimized models present. |
+| **Real-Time Updates** | Server-Sent Events | ✅ **IMPLEMENTED** | `GET /api/live-stream` streams `reading` / `detection` / `alert` events; `public/js/live-stream.js` subscribes and updates the dashboard KPI cards, the live page's detection list and the navbar badge. Reverb was not needed: the feed is one-way and SSE needs no extra daemon. |
+| **Embedded Development** | PlatformIO / ESP32-CAM | ✅ **IMPLEMENTED** | Firmware in `esp32cam/src/main.cpp`, built and flashed from VS Code via the root `platformio.ini` (no Arduino IDE). Serves `/stream`, `/capture`, `/status`; posts telemetry to `/api/device/telemetry` every 10s. Optional HC-SR04 fill sensor. |
+| **Device Integration** | Laravel device API | ✅ **IMPLEMENTED** | `routes/api.php` with `X-Device-Key` auth (`AuthenticateDevice`): `ping`, `telemetry`, `detection`. Partial payloads carry forward, so one wired sensor does not zero the other bins. |
+| **Machine Learning Framework** | TensorFlow.js | ✅ **IMPLEMENTED** | TF.js 1.7.4 vendored at `public/vendor/tfjs/tf.min.js` (pinned to the model's own `tfjsVersion`). Inference runs in the browser, so no Python service and no build step. |
+| **Image Classification Model** | MobileNetV2 (Teachable Machine) | ✅ **IMPLEMENTED** | `real dataset/` holds the trained artefacts (`Paper`, `Plastic`, `Class 3` at 224x224); `php artisan waste:sync-model` mirrors them into `public/models/waste-classifier/`. `/classifications/live` runs the forward pass and stores results. |
+| **Model Optimization** | TensorFlow Lite Converter | ❌ **NOT APPLICABLE** | Not used. Inference is in the browser, and an AI-Thinker ESP32-CAM has neither the RAM nor the flash for a 224x224 MobileNetV2 graph. `POST /api/device/detection` is ready if an on-device model is ever added. |
+| **Decision Support** | `FillLevelMonitor` | ✅ **IMPLEMENTED** | Server-side rules in `app/Support/FillLevelMonitor.php`: opens a "Near Full" alert at 75%, escalates to "Full" at 85%, and resolves when the bin drops back. Shared by live hardware and the demo seeder. |
 
 ---
 
 ## 📊 Summary: What's Working vs What's Missing
 
-### ✅ **FULLY IMPLEMENTED (7 components):**
+### ✅ **FULLY IMPLEMENTED (12 components):**
 1. ✅ Laravel 12 Backend
-2. ✅ MySQL Database (with sensor_data, alerts, classification_logs tables)
+2. ✅ PostgreSQL Database (sensor_data, alerts, classification_logs, sessions, …)
 3. ✅ Bootstrap 5 Frontend
 4. ✅ Bootstrap Icons
 5. ✅ Vite Build Tool
 6. ✅ Alpine.js
 7. ✅ Laravel Breeze Authentication (Session-based)
+8. ✅ ESP32-CAM firmware (PlatformIO, flashed from VS Code)
+9. ✅ Device ingest API with key authentication
+10. ✅ Real-time updates via Server-Sent Events
+11. ✅ MobileNetV2 image classification (TensorFlow.js)
+12. ✅ Decision support rules (fill thresholds, alert escalation)
 
 ### ⚠️ **PARTIALLY IMPLEMENTED (1 component):**
-- ⚠️ Chart.js - Frontend code exists (canvas elements, Chart.js CDN loaded) but no real data being displayed yet
+- ⚠️ Chart.js — wired to real queries, but the DSS and reports pages are still largely placeholders
 
-### ❌ **NOT YET IMPLEMENTED (6 components):**
-- ❌ Laravel Reverb (Real-time WebSockets)
-- ❌ Arduino IDE / ESP32 (Embedded sensors)
-- ❌ TensorFlow / TensorFlow Lite (Machine Learning)
-- ❌ MobileNetV2 (Image Classification)
-- ❌ TensorFlow Lite Converter
+### ❌ **NOT YET IMPLEMENTED (0 components):**
 
 ---
 
 ## 🔍 Key Observations:
 
-1. **Database Structure is Ready**: You have migrations for:
-   - `sensor_data` - for waste sensor readings
-   - `alerts` - for system alerts
-   - `classification_logs` - for waste classification records
-   - `maintenance_logs` - for maintenance tracking
+1. **Database Structure is Ready**: Migrations cover `sensor_data`, `alerts`,
+   `classification_logs` and `maintenance_logs`, and run on PostgreSQL.
+   `DatabaseSeeder` creates the admin account and calls `DemoDataSeeder`, which
+   fills an empty database with a believable day of readings, detections and
+   alerts. It skips itself once data exists, so deploys never duplicate history.
 
-2. **DSS (Decision Support System)**: The DSS page exists at `/dss` but is currently just a placeholder ("Decision Support System" heading only). Needs implementation.
+2. **DSS (Decision Support System)**: `/dss` is still a placeholder. The alert
+   rules that would feed it are in place (`FillLevelMonitor`), and the alerts
+   page already renders the "Collect Immediately" / "Schedule Collection"
+   recommendation, so the remaining work is presentation.
 
-3. **Charts Are Ready But Empty**: The analytics page has Chart.js setup with 3 charts (Fill Level Trend, Waste Generation, Peak Disposal Time), but they show "No data available" messages.
+3. **Authentication is Working**: log in with `admin@gmail.com` / `admin123`.
 
-4. **Authentication is Working**: You can log in with `admin@gmail.com` / `admin123` using Laravel Breeze's session-based auth.
+4. **Concurrency matters for real-time**: the MJPEG relay and the SSE feed are
+   both long-lived requests. `php artisan serve` is single-threaded on Windows
+   and will appear to freeze with a stream open — use Apache locally, and note
+   that `PHP_CLI_SERVER_WORKERS` only takes effect with `--no-reload`.
 
 ---
 
 ## 📝 Recommendations:
 
-If you want to fully implement the system as described in your component list, you'll need to:
-
-1. **Add Real-Time Features**: Configure Laravel Reverb for WebSocket notifications
-2. **Integrate ESP32 Sensors**: Add Arduino code and API endpoints to receive sensor data
-3. **Implement ML Classification**: Add TensorFlow Lite model and image upload/classification endpoints
-4. **Populate Chart Data**: Connect charts to actual database queries to show real analytics
-5. **Develop DSS Logic**: Add decision support algorithms to the DSS page
-
-Would you like me to help implement any of these missing components?
+1. **DSS Logic**: `/dss` should read the unresolved alerts and the fill-rate
+   trend rather than the single latest reading
+2. **Reports**: back `/reports` with the aggregated query the page implies
+3. **More sensors**: the AI-Thinker board has room for a second HC-SR04; the
+   telemetry endpoint already accepts all four compartments
+4. **On-device inference**: if the model is retrained and quantised, a TFLite
+   Micro build could classify on the camera and post to
+   `/api/device/detection`

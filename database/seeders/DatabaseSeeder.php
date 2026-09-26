@@ -30,5 +30,9 @@ class DatabaseSeeder extends Seeder
                 'role' => 'admin',
             ]
         );
+
+        // Gives the dashboard, analytics and DSS pages real data to render.
+        // Skipped automatically once readings exist, so deploys stay safe.
+        $this->call(DemoDataSeeder::class);
     }
 }
