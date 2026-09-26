@@ -1,0 +1,24 @@
+# Files excluded from `railway up`.
+#
+# The CLI already honours .gitignore, but these are listed again because
+# uploading them would put a local database password or the camera's Wi-Fi
+# credentials into a build context. The deployment gets its real values from
+# the Railway service variables, which always take precedence over a .env
+# file baked into the image.
+
+.env
+.env.backup
+.env.production
+esp32cam/include/secrets.h
+
+# Build output that is regenerated during the Railway build.
+node_modules
+vendor
+public/build
+esp32cam/.pio
+
+# Runtime data, not source.
+storage/logs/*.log
+public/images/classifications
+.git
+.github
