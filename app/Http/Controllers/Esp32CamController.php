@@ -146,8 +146,10 @@ class Esp32CamController extends Controller
     {
         $host = $config['capture_url'] !== '' ? $config['capture_url'] : $config['base_url'];
 
+        // Deliberately no leading delimiter here. The body must open with the
+        // first part's boundary; emitting a close delimiter first makes
+        // browsers treat the document as already finished.
         $this->sendStreamHeaders('');
-        $this->writePart(null);
 
         $interval = max(50, (int) $config['poll_interval_ms']) / 1000;
         $deadline = $config['stream_max_seconds'] > 0
@@ -207,21 +209,27 @@ class Esp32CamController extends Controller
     }
 
     /**
-     * Write one multipart part; a null frame writes the closing boundary.
+     * Write one multipart part; a null frame writes the closing delimiter.
+     *
+     * Every delimiter is preceded by CRLF, matching the layout the ESP32
+     * CameraWebServer itself emits. A body that opens with "--frame--" is
+     * misread by browsers as an already-closed multipart document, which
+     * leaves the <img> with no paintable frame even though later parts
+     * decode fine for canvas reads.
      */
     protected function writePart(?string $jpeg): void
     {
         if ($jpeg === null) {
-            echo "--frame--\r\n";
+            echo "\r\n--frame--\r\n";
             flush();
 
             return;
         }
 
-        echo "--frame\r\n"
+        echo "\r\n--frame\r\n"
             ."Content-Type: image/jpeg\r\n"
             .'Content-Length: '.strlen($jpeg)."\r\n\r\n"
-            .$jpeg."\r\n";
+            .$jpeg;
         flush();
     }
 

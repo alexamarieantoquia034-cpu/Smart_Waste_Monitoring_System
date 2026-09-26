@@ -181,16 +181,9 @@
             return;
         }
 
-        // A private address cannot be reached from a hosted server, so say so
-        // instead of polling a host that will never answer.
-        if (config.camera.privateNetwork) {
-            setPill(els.cameraPill, els.cameraPillText, 'sw-pill--warn', 'Unreachable');
-            els.cameraMeta.textContent = config.camera.url
-                + ' is a local network address — this server is not on that network';
-
-            return;
-        }
-
+        // A private address is reachable when this app runs on the same LAN, so
+        // it is not a verdict on its own. Ask the server instead; only a failed
+        // status check turns into "unreachable".
         fetch(ENDPOINTS.status, {
             headers: { Accept: 'application/json' },
             credentials: 'same-origin'
@@ -202,6 +195,11 @@
                     els.cameraMeta.textContent = data.url + ' · '
                         + (data.width || '?') + '×' + (data.height || '?')
                         + ' · ' + data.latency_ms + ' ms';
+                } else if (config.camera.privateNetwork) {
+                    setPill(els.cameraPill, els.cameraPillText, 'sw-pill--danger', 'Unreachable');
+                    els.cameraMeta.textContent = data.url
+                        + ' did not answer, and it is a local network address — '
+                        + 'this server can only reach it while on the same network';
                 } else {
                     setPill(els.cameraPill, els.cameraPillText, 'sw-pill--danger', 'Offline');
                     els.cameraMeta.textContent = data.message || 'Camera unreachable';

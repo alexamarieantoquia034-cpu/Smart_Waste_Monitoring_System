@@ -112,14 +112,17 @@
 
                 <div class="sw-card__body">
 
-                    {{-- Surfaces the real reason the feed is empty. A camera on a
-                         private LAN address looks identical to a missing camera
-                         from a hosted server, so name the actual cause. --}}
+                    {{-- Context for a camera address that only resolves on a LAN.
+                         This is a note, not a failure: the app is often running
+                         on that same network, in which case the feed works and
+                         the status pill above says so. --}}
                     @if ($cameraEndpoint['message'])
-                        <div class="sw-callout sw-callout--{{ $cameraEndpoint['private_network'] ? 'warn' : 'info' }} mb-3">
-                            <i class="bi bi-{{ $cameraEndpoint['private_network'] ? 'router' : 'info-circle' }}"></i>
+                        <div class="sw-callout sw-callout--{{ $cameraEndpoint['private_network'] ? 'info' : 'warn' }} mb-3">
+                            <i class="bi bi-{{ $cameraEndpoint['private_network'] ? 'router' : 'exclamation-triangle' }}"></i>
                             <div>
-                                <div class="sw-callout__title">Camera not reachable from this server</div>
+                                <div class="sw-callout__title">
+                                    {{ $cameraEndpoint['private_network'] ? 'Local network address' : 'Camera not configured' }}
+                                </div>
                                 <div class="sw-callout__text">{{ $cameraEndpoint['message'] }}</div>
                             </div>
                         </div>

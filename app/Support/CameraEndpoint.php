@@ -91,7 +91,11 @@ class CameraEndpoint
     }
 
     /**
-     * A single sentence naming the actual problem, or null when there is none.
+     * A sentence describing the situation, or null when there is nothing to
+     * say. Wording is deliberately conditional: a private address is reachable
+     * when the app runs on the same network and unreachable otherwise, and
+     * only the live status check can tell which. Asserting either here would
+     * show a confident "unreachable" warning next to a working video feed.
      */
     protected function message(string $url, string $host, bool $private, bool $enabled): ?string
     {
@@ -104,10 +108,11 @@ class CameraEndpoint
         }
 
         if ($private) {
-            return 'ESP32CAM_URL points at '.$host.', which is a private address on your local network. '
-                .'This server can only reach it when the application runs on the same network as the camera. '
-                .'Open the site on this machine (or expose the camera to the internet with port forwarding or a tunnel) '
-                .'to use the live feed.';
+            return 'ESP32CAM_URL points at '.$host.', a private address on your local network. '
+                .'This works while the application runs on the same network as the camera, '
+                .'so check the status above. A hosted server cannot route there at all; '
+                .'for a deployment you will need a public address for the camera, reached '
+                .'through port forwarding or a tunnel.';
         }
 
         return null;
