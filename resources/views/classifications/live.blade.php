@@ -15,7 +15,11 @@
         'stable_frames' => $model['stable_frames'],
         'installed' => $model['installed'],
         'model_url' => $model['model_url'],
-        'camera' => $camera,
+        'camera' => array_merge($camera, [
+            // Lets the page say "this server can never reach that address"
+            // rather than reporting a healthy-looking offline camera.
+            'privateNetwork' => $cameraEndpoint['private_network'],
+        ]),
         'endpoints' => [
             'stream' => route('api.esp32cam.stream'),
             'capture' => route('api.esp32cam.capture'),
@@ -107,6 +111,19 @@
                 </div>
 
                 <div class="sw-card__body">
+
+                    {{-- Surfaces the real reason the feed is empty. A camera on a
+                         private LAN address looks identical to a missing camera
+                         from a hosted server, so name the actual cause. --}}
+                    @if ($cameraEndpoint['message'])
+                        <div class="sw-callout sw-callout--{{ $cameraEndpoint['private_network'] ? 'warn' : 'info' }} mb-3">
+                            <i class="bi bi-{{ $cameraEndpoint['private_network'] ? 'router' : 'info-circle' }}"></i>
+                            <div>
+                                <div class="sw-callout__title">Camera not reachable from this server</div>
+                                <div class="sw-callout__text">{{ $cameraEndpoint['message'] }}</div>
+                            </div>
+                        </div>
+                    @endif
 
                     <div class="ml-stage" id="mlStage">
                         <img id="mlStream" alt="ESP32-CAM live stream" hidden>

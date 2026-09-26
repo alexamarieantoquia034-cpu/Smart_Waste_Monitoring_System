@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ClassificationLog;
 use App\Models\SensorData;
+use App\Support\CameraEndpoint;
 use App\Support\Jpeg;
 use App\Support\WasteClassifier;
 use Illuminate\Http\Request;
@@ -31,7 +32,7 @@ class ClassificationController extends Controller
      * Inference runs in the browser through TensorFlow.js, so this action
      * only supplies the model description and the camera configuration.
      */
-    public function live(WasteClassifier $classifier)
+    public function live(WasteClassifier $classifier, CameraEndpoint $camera)
     {
         return view('classifications.live', [
             'model' => $classifier->summary(),
@@ -41,6 +42,9 @@ class ClassificationController extends Controller
                 'url' => config('esp32cam.base_url'),
                 'framesize' => config('esp32cam.framesize'),
             ],
+            // Distinguishes "no address set" from "address set but this server
+            // cannot reach it", which are very different problems.
+            'cameraEndpoint' => $camera->describe(),
             'logs' => ClassificationLog::latest()->limit(6)->get(),
         ]);
     }

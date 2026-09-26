@@ -77,6 +77,42 @@ return [
     'stream_read_timeout' => (float) env('ESP32CAM_STREAM_TIMEOUT', 0),
 
     /*
+    |----------------------------------------------------------------------
+    | Stream source
+    |----------------------------------------------------------------------
+    |
+    | The stock CameraWebServer serves its MJPEG stream from a handler that
+    | loops forever and exits only when the socket breaks. It also accepts a
+    | single stream client, so one abandoned connection - a closed laptop lid,
+    | a dropped phone, a reload that never fired onunload - can wedge the
+    | stream port until the board is power-cycled. Through a tunnel or a
+    | hosted server that failure is easy to hit and impossible to clear
+    | remotely.
+    |
+    | The /capture endpoint has neither problem: it is a plain request and
+    | response, so it is stateless and can be polled. 'poll' rebuilds the
+    | MJPEG response the browser expects by fetching one still at a time,
+    | which keeps the frontend and this controller's URL unchanged.
+    |
+    |   auto  - try the native stream, fall back to polling (default)
+    |   native- use the camera's own stream only
+    |   poll  - always poll /capture
+    |
+    */
+
+    'stream_mode' => env('ESP32CAM_STREAM_MODE', 'auto'),
+
+    'poll_interval_ms' => (int) env('ESP32CAM_POLL_INTERVAL_MS', 400),
+
+    /*
+    | Relaying one long-lived request per viewer ties up a PHP worker for the
+    | whole session. Cap it so an abandoned browser tab cannot starve the
+    | worker pool. 0 disables the cap; the browser just reconnects.
+    */
+
+    'stream_max_seconds' => (int) env('ESP32CAM_STREAM_MAX_SECONDS', 900),
+
+    /*
     |--------------------------------------------------------------------------
     | Device ingest
     |--------------------------------------------------------------------------

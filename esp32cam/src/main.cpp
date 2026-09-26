@@ -114,25 +114,32 @@ static const char* indexHtml = R"rawliteral(
 )rawliteral";
 
 // ------------------------------------------------------------------ camera
+// AI-Thinker pinout. HREF is GPIO 23 and SCCB SDA is GPIO 26 — these two are
+// easy to transpose and the camera still powers on when you do, but frame
+// timing and the SCCB bus are wrong, which shows up as a black or torn image
+// rather than a clean init failure. Keep this table identical to the
+// CAMERA_MODEL_AI_THINKER block in the ESP32 core's camera_pins.h.
 static void configureCamera() {
   camera_config_t config;
 
   config.ledc_channel = LEDC_CHANNEL_0;
   config.ledc_timer = LEDC_TIMER_0;
-  config.pin_d0 = 5;
-  config.pin_d1 = 18;
-  config.pin_d2 = 19;
-  config.pin_d3 = 21;
-  config.pin_d4 = 36;
-  config.pin_d5 = 39;
-  config.pin_d6 = 34;
-  config.pin_d7 = 35;
-  config.pin_d8 = 32;
+
+  // Y2..Y9, the 8-bit data bus.
+  config.pin_d0 = 5;   // Y2
+  config.pin_d1 = 18;  // Y3
+  config.pin_d2 = 19;  // Y4
+  config.pin_d3 = 21;  // Y5
+  config.pin_d4 = 36;  // Y6
+  config.pin_d5 = 39;  // Y7
+  config.pin_d6 = 34;  // Y8
+  config.pin_d7 = 35;  // Y9
+
   config.pin_xclk = 0;
   config.pin_pclk = 22;
   config.pin_vsync = 25;
-  config.pin_href = 26;
-  config.pin_sccb_sda = 23;
+  config.pin_href = 23;
+  config.pin_sccb_sda = 26;
   config.pin_sccb_scl = 27;
   config.pin_pwdn = 32;
   config.pin_reset = -1;

@@ -34,10 +34,9 @@ class Esp32CamController extends Controller
             );
         }
 
-        $url = $config['base_url'].$config['stream_path'];
-
         // Every frame must reach the browser immediately. Drop any handler
-        // output buffer and turn off compression/buffering.
+        // output buffer and turn off compression/buffering. Done here so both
+        // the native relay and the polling fallback stream unbuffered.
         while (ob_get_level() > 0) {
             ob_end_clean();
         }
@@ -46,6 +45,41 @@ class Esp32CamController extends Controller
         ini_set('implicit_flush', '1');
         ob_implicit_flush(true);
 
+        if ($config['stream_mode'] !== 'poll') {
+            $relay = $this->relayNativeStream($config);
+
+            // The camera delivered a live stream, or the mode forbids the
+            // polling fallback. Either way the response is already committed.
+            if ($relay !== null) {
+                return $relay;
+            }
+        }
+
+        if ($config['stream_mode'] === 'native') {
+            return $this->plainError(
+                'The ESP32-CAM did not deliver a stream, and ESP32CAM_STREAM_MODE=native '
+                .'forbids the /capture fallback. Power-cycle the camera to release its '
+                .'stream port, or set ESP32CAM_STREAM_MODE=auto.',
+                502,
+            );
+        }
+
+        return $this->streamByPollingCapture($config);
+    }
+
+    /**
+     * Relay the camera's own MJPEG stream.
+     *
+     * @return \Illuminate\Http\Response|null A response when the stream could
+     *                                        not be used and the caller
+     *                                        should fall back to polling,
+     *                                        or null once frames are being
+     *                                        written straight to the socket.
+     */
+    protected function relayNativeStream(array $config)
+    {
+        $url = $config['base_url'].$config['stream_path'];
+
         try {
             $response = $this->client((float) $config['stream_read_timeout'])->get($url, [
                 'stream' => true,
@@ -53,41 +87,31 @@ class Esp32CamController extends Controller
                 'headers' => $this->headers($config),
             ]);
         } catch (GuzzleException $e) {
-            Log::warning('ESP32-CAM stream unreachable.', ['url' => $url, 'error' => $e->getMessage()]);
+            Log::warning('ESP32-CAM stream unreachable, falling back to capture polling.', [
+                'url' => $url,
+                'error' => $e->getMessage(),
+            ]);
 
-            return $this->plainError(
-                'Cannot reach the ESP32-CAM at '.$url.'. '.$e->getMessage()
-                .$this->streamHint($e),
-                502,
-            );
+            return null;
         }
 
         if ($response->getStatusCode() >= 400) {
-            return $this->plainError(
-                'The ESP32-CAM returned HTTP '.$response->getStatusCode().' for '.$url.'.',
-                502,
-            );
+            return null;
         }
 
         $body = $response->getBody();
 
-        // The stock CameraWebServer keeps only two JPEG frame buffers. If the
-        // camera's own control page is open in another tab it holds both, so
-        // this request connects but never receives a frame. From the browser
-        // that is an indistinguishable silent hang, so probe for the first
-        // byte with a bounded wait and explain what to do.
+        // The stock CameraWebServer keeps only two JPEG frame buffers and
+        // serves a single stream client. If that client is gone but the socket
+        // has not yet been reaped, this request connects and never receives a
+        // frame - from the browser an indistinguishable silent hang. Probe for
+        // the first byte with a bounded wait and fall back to polling.
         $first = $this->firstByte($body);
 
         if ($first === null || $first === '') {
-            Log::warning('ESP32-CAM stream connected but delivered no frame.', ['url' => $url]);
+            Log::warning('ESP32-CAM stream connected but delivered no frame; using capture polling.');
 
-            return $this->plainError(
-                'The ESP32-CAM accepted the stream connection but sent no frames. '
-                .'Its two frame buffers are almost certainly held by another client: '
-                ."close the camera's own control page in your browser (or press Stop Stream) "
-                .'and reload. The camera serves one stream at a time.',
-                502,
-            );
+            return null;
         }
 
         $this->sendStreamHeaders((string) $response->getHeaderLine('Content-Type'));
@@ -107,6 +131,98 @@ class Esp32CamController extends Controller
         // headers have been flushed, so the framework cannot finish this
         // request normally.
         exit;
+    }
+
+    /**
+     * Rebuild the MJPEG response the browser expects by polling /capture.
+     *
+     * The camera's dedicated stream port serves exactly one client and can be
+     * left wedged by a dropped connection, which cannot be cleared without
+     * physically rebooting the board. /capture is an ordinary request, so it
+     * stays available. Assembling the multipart body here means the frontend
+     * and the public URL do not change.
+     */
+    protected function streamByPollingCapture(array $config)
+    {
+        $host = $config['capture_url'] !== '' ? $config['capture_url'] : $config['base_url'];
+
+        $this->sendStreamHeaders('');
+        $this->writePart(null);
+
+        $interval = max(50, (int) $config['poll_interval_ms']) / 1000;
+        $deadline = $config['stream_max_seconds'] > 0
+            ? microtime(true) + $config['stream_max_seconds']
+            : null;
+
+        $client = $this->client();
+        $misses = 0;
+
+        while (! connection_aborted()) {
+            if ($deadline !== null && microtime(true) >= $deadline) {
+                // Let the browser reconnect to a fresh worker rather than
+                // holding this one for the rest of the session.
+                break;
+            }
+
+            $frame = null;
+
+            try {
+                $response = $client->get($host.$config['capture_path'], [
+                    'query' => $this->query($config) + ['framesize' => $config['framesize']],
+                    'headers' => ['Accept' => 'image/jpeg'],
+                ]);
+
+                $bytes = (string) $response->getBody();
+
+                if ($response->getStatusCode() < 400 && Jpeg::isJpeg($bytes)) {
+                    $frame = $bytes;
+                    $misses = 0;
+                }
+            } catch (GuzzleException $e) {
+                // Log once, not once per frame: a dropped camera should not
+                // fill the log while the browser holds the request open.
+                if (++$misses === 1 || $misses % 25 === 0) {
+                    Log::warning('ESP32-CAM capture poll failed.', [
+                        'url' => $host.$config['capture_path'],
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            if ($frame !== null) {
+                $this->writePart($frame);
+            } elseif ($misses > 30) {
+                return $this->plainError(
+                    'Lost contact with the ESP32-CAM while streaming. '
+                    .$host.$config['capture_path'].' is not answering.',
+                    502,
+                );
+            }
+
+            usleep((int) ($interval * 1000000));
+        }
+
+        $this->writePart(null);
+        exit;
+    }
+
+    /**
+     * Write one multipart part; a null frame writes the closing boundary.
+     */
+    protected function writePart(?string $jpeg): void
+    {
+        if ($jpeg === null) {
+            echo "--frame--\r\n";
+            flush();
+
+            return;
+        }
+
+        echo "--frame\r\n"
+            ."Content-Type: image/jpeg\r\n"
+            .'Content-Length: '.strlen($jpeg)."\r\n\r\n"
+            .$jpeg."\r\n";
+        flush();
     }
 
     /**
@@ -212,36 +328,6 @@ class Esp32CamController extends Controller
                 'message' => $e->getMessage(),
             ]);
         }
-    }
-
-    /**
-     * Turn a transport failure into something the operator can act on.
-     *
-     * The stock CameraWebServer is the usual source of trouble here and its
-     * failure modes look identical from the network:
-     *
-     *   - "Connection refused" on the stream port means the stream server was
-     *     never started. That sketch only opens it when Start Stream is
-     *     pressed on its control page, so the port is simply closed.
-     *   - A timeout on the control port means the board is on another subnet
-     *     or blocked by the firewall.
-     */
-    protected function streamHint(GuzzleException $e): string
-    {
-        $message = $e->getMessage();
-
-        if (str_contains($message, 'Connection refused')) {
-            return ' The stream port is closed. Open the camera\'s control page on port 80,'
-                .' press "Start Stream" once to open it, then close that tab and reload here.'
-                .' The camera serves one stream at a time, so the page that opened it must be closed.';
-        }
-
-        if (str_contains($message, 'timed out') || str_contains($message, 'timeout')) {
-            return ' The camera did not answer in time. Check it is on the same network as this'
-                .' server and that the Windows firewall is not blocking inbound PHP connections.';
-        }
-
-        return '';
     }
 
     /**

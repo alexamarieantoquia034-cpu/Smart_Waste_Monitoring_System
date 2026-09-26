@@ -181,6 +181,16 @@
             return;
         }
 
+        // A private address cannot be reached from a hosted server, so say so
+        // instead of polling a host that will never answer.
+        if (config.camera.privateNetwork) {
+            setPill(els.cameraPill, els.cameraPillText, 'sw-pill--warn', 'Unreachable');
+            els.cameraMeta.textContent = config.camera.url
+                + ' is a local network address — this server is not on that network';
+
+            return;
+        }
+
         fetch(ENDPOINTS.status, {
             headers: { Accept: 'application/json' },
             credentials: 'same-origin'
