@@ -12,13 +12,16 @@
 esp32cam/include/secrets.h
 
 # Build output that is regenerated during the Railway build.
-node_modules
-vendor
-public/build
-esp32cam/.pio
+# These MUST stay anchored with a leading slash. A bare "vendor" would also
+# match public/vendor, which is where the vendored TensorFlow.js runtime
+# lives, and silently ship a deploy with a 404 on tf.min.js.
+/node_modules
+/vendor
+/public/build
+/esp32cam/.pio
 
 # Runtime data, not source.
-storage/logs/*.log
-public/images/classifications
+/storage/logs/*.log
+/public/images/classifications
 .git
 .github
