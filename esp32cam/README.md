@@ -124,6 +124,49 @@ If the pill stays red, the usual causes are:
 
 ---
 
+## Using the stock CameraWebServer sketch instead
+
+You do not have to flash `esp32cam/src/main.cpp`. The ESP32 Arduino core's
+built-in **CameraWebServer** example works with this application too, and it is
+what most guides tell you to upload first. Two things differ:
+
+| | Stock CameraWebServer | `esp32cam/src/main.cpp` |
+| --- | --- | --- |
+| Control page | port **80** | port 81 |
+| `/stream` | port **81** | port 81 |
+| `/capture` | port **80** | port 81 |
+| `/status` | not present | port 81 |
+| Telemetry POST | no | yes |
+
+Because capture and stream sit on different ports, set both in `.env`:
+
+```env
+ESP32CAM_URL=http://192.168.100.19:81
+ESP32CAM_CAPTURE_URL=http://192.168.100.19
+```
+
+`ESP32CAM_CAPTURE_URL` is only needed for the stock sketch. Leave it empty for
+our firmware, which serves everything from one port.
+
+### The camera serves one stream at a time
+
+The stock sketch keeps only two JPEG frame buffers in PSRAM. It hands them to
+whoever asks for `/stream` and there is no second client, so:
+
+1. Open `http://192.168.100.19` (port 80) and press **Start Stream** once. If
+   you skip this, port 81 is closed and the application reports
+   *"Connection refused"*.
+2. **Close that tab.** Leaving it open keeps both buffers busy, so the
+   application's stream connects and then receives no frames at all. The live
+   page now detects exactly that and tells you to close the camera page rather
+   than hanging silently.
+3. Reload `/classifications/live`.
+
+Flashing `esp32cam/src/main.cpp` avoids all of this: it serves the stream, the
+capture and the health check from one port and needs no Start Stream click.
+
+---
+
 ## Fill level sensor
 
 The firmware can read one HC-SR04 to report a real bin level. Enable it in

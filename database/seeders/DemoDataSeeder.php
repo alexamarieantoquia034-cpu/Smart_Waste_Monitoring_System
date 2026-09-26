@@ -57,20 +57,28 @@ class DemoDataSeeder extends Seeder
     }
 
     /**
-     * A rising fill curve per compartment with a little noise, so the chart
-     * looks like bins filling through the day rather than random bars.
+     * A rising fill curve per compartment, starting from empty.
+     *
+     * The bins begin at zero and climb over the seeded window, so the chart
+     * reads as "collection started, waste is going in" rather than "these bins
+     * were already full when the system started". That matters because nothing
+     * is physically in the bins yet: until an ultrasonic sensor is wired, a
+     * reading of 95% would be claiming a fullness that does not exist.
+     *
+     * Paper is the deliberate problem child and ends just past the "Near Full"
+     * warning line, so the alert and DSS rules have something real to act on
+     * while the other three stay comfortably under it.
      *
      * @return \Illuminate\Support\Collection<int, SensorData>
      */
     protected function seedReadings()
     {
-        // Each bin fills at its own pace; plastic is the deliberate problem
-        // child so at least one alert exists on the dashboard.
         $profiles = [
-            'plastic' => ['start' => 22.0, 'perStep' => 1.25, 'noise' => 2.0, 'ceiling' => 97.0],
-            'paper' => ['start' => 12.0, 'perStep' => 0.75, 'noise' => 1.8, 'ceiling' => 74.0],
-            'biodegradable' => ['start' => 18.0, 'perStep' => 0.55, 'noise' => 1.5, 'ceiling' => 58.0],
-            'reject' => ['start' => 8.0, 'perStep' => 0.35, 'noise' => 1.2, 'ceiling' => 41.0],
+            //             start  perStep  noise  ceiling
+            'paper' => ['start' => 0.0, 'perStep' => 1.30, 'noise' => 1.6, 'ceiling' => 88.0],
+            'plastic' => ['start' => 0.0, 'perStep' => 0.85, 'noise' => 1.4, 'ceiling' => 66.0],
+            'biodegradable' => ['start' => 0.0, 'perStep' => 0.55, 'noise' => 1.2, 'ceiling' => 48.0],
+            'reject' => ['start' => 0.0, 'perStep' => 0.30, 'noise' => 1.0, 'ceiling' => 32.0],
         ];
 
         $now = Carbon::now();
@@ -116,15 +124,21 @@ class DemoDataSeeder extends Seeder
      * labels so the compartment mapping stays whatever the model is trained
      * for. Confidence is drawn from a plausible band rather than uniform.
      *
+     * $recent is the newest readings first, so index 0 is the most recent
+     * reading. Cycling the labels in order therefore puts the first class,
+     * Paper, on the newest row — the one the dashboard and the live page show
+     * at the top.
+     *
      * @param  \Illuminate\Support\Collection<int, SensorData>  $readings
      * @param  array<int, string>  $labels
      */
     protected function seedDetections($readings, WasteClassifier $classifier, array $labels): void
     {
         $recent = $readings->reverse()->take(self::DETECTIONS)->values();
+        $count = count($labels);
 
         foreach ($recent as $index => $reading) {
-            $label = $labels[$index % count($labels)];
+            $label = $labels[$index % $count];
             $confidence = $this->jitter(9.0) + 78.0;
 
             ClassificationLog::create([

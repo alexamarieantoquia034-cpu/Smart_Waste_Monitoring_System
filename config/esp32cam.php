@@ -33,6 +33,26 @@ return [
     'capture_path' => env('ESP32CAM_CAPTURE_PATH', '/capture'),
 
     /*
+    |--------------------------------------------------------------------------
+    | Separate capture host
+    |--------------------------------------------------------------------------
+    |
+    | The stock ESP32 CameraWebServer sketch splits its two servers across two
+    | ports: the control UI and /capture listen on 80, while /stream listens
+    | on 81. Point ESP32CAM_URL at the stream and ESP32CAM_CAPTURE_URL at the
+    | capture server, for example:
+    |
+    |   ESP32CAM_URL         = http://192.168.100.19:81
+    |   ESP32CAM_CAPTURE_URL = http://192.168.100.19
+    |
+    | Leave it empty to assume both live on the same host, which is what the
+    | firmware in esp32cam/src/main.cpp does.
+    |
+    */
+
+    'capture_url' => rtrim((string) env('ESP32CAM_CAPTURE_URL', ''), '/'),
+
+    /*
     | Frame size requested from the camera when grabbing a single still. The
     | model resizes to 224x224 anyway, but a larger source frame keeps more
     | detail in the centre crop. Must match a FRAMESIZE constant in the

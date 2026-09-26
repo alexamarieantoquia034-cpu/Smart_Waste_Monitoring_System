@@ -135,7 +135,13 @@
 
     function loadModel() {
         if (typeof window.tf === 'undefined') {
-            fail('TensorFlow.js did not load. Check public/vendor/tfjs/tf.min.js.');
+            // Name the exact URL that was requested: "did not load" on its own
+            // is impossible to act on, because the file is usually present and
+            // the real cause is a stale cached 404, a wrong host, or the page
+            // being opened from a different machine than the server.
+            fail('TensorFlow.js did not load from ' + (config.runtime_url || 'the configured URL')
+                + ' — hard-refresh (Ctrl+F5). If it persists, open that URL directly;'
+                + ' a 404 means the file is missing, run: php artisan waste:sync-model');
 
             return Promise.reject(new Error('TensorFlow.js missing'));
         }

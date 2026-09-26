@@ -7,6 +7,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Psr\Http\Message\StreamInterface;
 
 /**
  * Bridges the ESP32-CAM web server into the application.
@@ -55,7 +56,8 @@ class Esp32CamController extends Controller
             Log::warning('ESP32-CAM stream unreachable.', ['url' => $url, 'error' => $e->getMessage()]);
 
             return $this->plainError(
-                'Cannot reach the ESP32-CAM at '.$url.'. '.$e->getMessage(),
+                'Cannot reach the ESP32-CAM at '.$url.'. '.$e->getMessage()
+                .$this->streamHint($e),
                 502,
             );
         }
@@ -69,12 +71,36 @@ class Esp32CamController extends Controller
 
         $body = $response->getBody();
 
+        // The stock CameraWebServer keeps only two JPEG frame buffers. If the
+        // camera's own control page is open in another tab it holds both, so
+        // this request connects but never receives a frame. From the browser
+        // that is an indistinguishable silent hang, so probe for the first
+        // byte with a bounded wait and explain what to do.
+        $first = $this->firstByte($body);
+
+        if ($first === null || $first === '') {
+            Log::warning('ESP32-CAM stream connected but delivered no frame.', ['url' => $url]);
+
+            return $this->plainError(
+                'The ESP32-CAM accepted the stream connection but sent no frames. '
+                .'Its two frame buffers are almost certainly held by another client: '
+                ."close the camera's own control page in your browser (or press Stop Stream) "
+                .'and reload. The camera serves one stream at a time.',
+                502,
+            );
+        }
+
         $this->sendStreamHeaders((string) $response->getHeaderLine('Content-Type'));
 
         // Runs until the camera stops sending or the visitor closes the tab.
         while (! $body->eof() && ! connection_aborted()) {
+            // The probe already consumed the first byte, so write it back out
+            // before continuing with the rest of the stream.
+            echo $first;
             echo $body->read($config['chunk_size']);
             flush();
+
+            $first = null;
         }
 
         // The multipart body is already on the wire and the session cookie
@@ -97,9 +123,14 @@ class Esp32CamController extends Controller
             );
         }
 
+        $startedAt = microtime(true);
+        $latency = fn () => (int) round((microtime(true) - $startedAt) * 1000);
+
+        $host = $config['capture_url'] !== '' ? $config['capture_url'] : $config['base_url'];
+
         try {
             $response = $this->client()->get(
-                $config['base_url'].$config['capture_path'],
+                $host.$config['capture_path'],
                 [
                     'query' => $this->query($config) + ['framesize' => $config['framesize']],
                     'headers' => $this->headers($config),
@@ -142,9 +173,11 @@ class Esp32CamController extends Controller
         $startedAt = microtime(true);
         $latency = fn () => (int) round((microtime(true) - $startedAt) * 1000);
 
+        $host = $config['capture_url'] !== '' ? $config['capture_url'] : $config['base_url'];
+
         try {
             $response = $this->client()->get(
-                $config['base_url'].$config['capture_path'],
+                $host.$config['capture_path'],
                 [
                     'query' => $this->query($config) + ['framesize' => $config['framesize']],
                     'headers' => $this->headers($config),
@@ -179,6 +212,72 @@ class Esp32CamController extends Controller
                 'message' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Turn a transport failure into something the operator can act on.
+     *
+     * The stock CameraWebServer is the usual source of trouble here and its
+     * failure modes look identical from the network:
+     *
+     *   - "Connection refused" on the stream port means the stream server was
+     *     never started. That sketch only opens it when Start Stream is
+     *     pressed on its control page, so the port is simply closed.
+     *   - A timeout on the control port means the board is on another subnet
+     *     or blocked by the firewall.
+     */
+    protected function streamHint(GuzzleException $e): string
+    {
+        $message = $e->getMessage();
+
+        if (str_contains($message, 'Connection refused')) {
+            return ' The stream port is closed. Open the camera\'s control page on port 80,'
+                .' press "Start Stream" once to open it, then close that tab and reload here.'
+                .' The camera serves one stream at a time, so the page that opened it must be closed.';
+        }
+
+        if (str_contains($message, 'timed out') || str_contains($message, 'timeout')) {
+            return ' The camera did not answer in time. Check it is on the same network as this'
+                .' server and that the Windows firewall is not blocking inbound PHP connections.';
+        }
+
+        return '';
+    }
+
+    /**
+     * Wait a bounded time for the first byte of an endless stream response.
+     *
+     * The stream deliberately runs with a read timeout of 0 (never time out),
+     * so a plain read() here would hang the request forever when the camera
+     * connects but sends nothing. Waiting on the underlying socket with
+     * stream_select() bounds the wait without cancelling the stream itself.
+     *
+     * @return string|null The first byte, '' if the stream ended, or null if
+     *                     nothing arrived within the grace period.
+     */
+    protected function firstByte(StreamInterface $body): ?string
+    {
+        try {
+            $resource = $body->getResource();
+        } catch (\Throwable) {
+            // Not a plain socket (a PumpStream, for example). Fall through and
+            // let read() decide.
+            $resource = null;
+        }
+
+        if (is_resource($resource)) {
+            $read = [$resource];
+            $write = null;
+            $except = null;
+
+            $ready = @stream_select($read, $write, $except, 3);
+
+            if ($ready === 0) {
+                return null;
+            }
+        }
+
+        return $body->read(1);
     }
 
     /**

@@ -140,7 +140,7 @@ class WasteClassifier
             'runtime_version' => config('waste.model.runtime_version'),
             'model_url' => asset(config('waste.model.url').'/model.json'),
             'metadata_url' => asset(config('waste.model.url').'/metadata.json'),
-            'runtime_url' => asset(config('waste.model.runtime_url')),
+            'runtime_url' => $this->runtimeUrl(),
             'installed' => $this->isInstalled(),
             'missing_files' => $this->missingFiles(),
             'threshold' => (float) config('waste.inference.threshold'),
@@ -148,6 +148,26 @@ class WasteClassifier
             'frame_interval_ms' => (int) config('waste.inference.frame_interval_ms'),
             'stable_frames' => (int) config('waste.inference.stable_frames'),
         ];
+    }
+
+    /**
+     * Public URL for the TensorFlow.js runtime, with a cache-busting query.
+     *
+     * The runtime is a ~900 KB vendored file that changes only when the model
+     * is retrained against a different tfjs version. Without a version query a
+     * browser that once got a 404 (or a partial response) for this path keeps
+     * serving that failure from cache, and the live page reports
+     * "TensorFlow.js did not load" even though the file is sitting on disk
+     * being served correctly. Keying the URL on the file's mtime makes the
+     * browser refetch exactly when the file actually changes.
+     */
+    public function runtimeUrl(): string
+    {
+        $runtime = public_path((string) config('waste.model.runtime_url'));
+        $version = is_file($runtime) ? filemtime($runtime) : null;
+
+        return asset((string) config('waste.model.runtime_url'))
+            .($version ? '?v='.$version : '');
     }
 
     /**
